@@ -1,0 +1,15 @@
+requests
+beautifulsoup4
+lxml
+pandas
+numpy
+scikit-learn
+lightgbm
+transformers
+torch
+jieba
+python-dotenv
+plotly
+geopandas
+pyarrow
+joblib
