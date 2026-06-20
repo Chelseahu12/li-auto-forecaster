@@ -37,6 +37,10 @@ class QuantileForestForecaster:
         X_arr = X[FEATURE_COLS].values
         self.target_cols_ = [c for c in TARGET_COLS if c in y.columns]
         y_arr = y[self.target_cols_].values.astype(float)
+        # Drop target months where any training row is missing
+        valid_cols = ~np.isnan(y_arr).any(axis=0)
+        self.target_cols_ = [c for c, v in zip(self.target_cols_, valid_cols) if v]
+        y_arr = y_arr[:, valid_cols]
 
         self.forest_ = RandomForestRegressor(
             n_estimators=self.n_estimators,
