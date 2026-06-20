@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
-from src.fetch.li_auto_ir import fetch_and_cache_deliveries, load_deliveries
+from src.fetch.li_auto_ir import fetch_and_cache_deliveries, load_deliveries, load_from_csv, MANUAL_CSV
 from src.fetch.cpca import load_cpca
 from src.fetch.autohome import load_specs, load_reviews
 from src.features.trajectory import TrajectoryTransformer
@@ -18,14 +18,20 @@ from src.model.split import TRAIN_MODELS, TARGET_COLS
 OUT_DIR = Path("data/processed")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Parse Li Auto IR HTML pages ---
-ir_pages_dir = Path("data/raw/li_auto_ir/pages")
-if ir_pages_dir.exists():
-    html_pages = [p.read_text() for p in sorted(ir_pages_dir.glob("*.html"))]
-    deliveries = fetch_and_cache_deliveries(html_pages)
+# --- Load Li Auto per-model deliveries ---
+# Priority: manual CSV > HTML pages > cache
+if MANUAL_CSV.exists():
+    print(f"Loading deliveries from {MANUAL_CSV} ...")
+    deliveries = load_from_csv()
+    print(f"  -> {len(deliveries)} rows, models: {deliveries['model'].unique().tolist()}")
 else:
-    print("Loading cached deliveries...")
-    deliveries = load_deliveries()
+    ir_pages_dir = Path("data/raw/li_auto_ir/pages")
+    if ir_pages_dir.exists():
+        html_pages = [p.read_text() for p in sorted(ir_pages_dir.glob("*.html"))]
+        deliveries = fetch_and_cache_deliveries(html_pages)
+    else:
+        print("Loading cached deliveries...")
+        deliveries = load_deliveries()
 
 # --- Merge CPCA peers ---
 cpca = load_cpca()

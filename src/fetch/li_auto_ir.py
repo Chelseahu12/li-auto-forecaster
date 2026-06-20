@@ -120,6 +120,36 @@ def load_deliveries() -> pd.DataFrame:
     )
 
 
+MANUAL_CSV = Path("data/raw/deliveries_manual.csv")
+
+
+def load_from_csv() -> pd.DataFrame:
+    """Load per-model monthly deliveries from a manually maintained CSV.
+
+    CSV format (columns: model, year_month, sales):
+        model,year_month,sales
+        L9,2022-09,4000
+        L9,2022-10,8000
+        ...
+
+    Only rows with model in LAUNCH_DATES are kept (filters out TOTAL rows).
+    Adds month_since_launch relative to each model's launch date.
+    """
+    if not MANUAL_CSV.exists():
+        raise FileNotFoundError(
+            f"{MANUAL_CSV} not found. Create it with columns: model,year_month,sales"
+        )
+    df = pd.read_csv(MANUAL_CSV, dtype={"year_month": str, "sales": int})
+    df = df[df["model"].isin(LAUNCH_DATES)].copy()
+    if df.empty:
+        raise ValueError(f"{MANUAL_CSV} has no rows with known models {list(LAUNCH_DATES)}")
+    df["month_since_launch"] = df.apply(
+        lambda r: _month_since_launch(r["year_month"], LAUNCH_DATES[r["model"]]),
+        axis=1,
+    )
+    return df.reset_index(drop=True)
+
+
 def fetch_and_cache_deliveries(html_pages: list[str]) -> pd.DataFrame:
     """Parse a list of IR HTML pages, deduplicate, and cache."""
     all_rows = []
